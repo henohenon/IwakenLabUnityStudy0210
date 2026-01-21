@@ -40,24 +40,23 @@ namespace IwakenLabUnityStudy
                     //tutorialLineController.From = _battleWeaponInstance.transform;
                     //tutorialLineController.gameObject.SetActive(true);
 
-
-                    //_startSubscription?.Dispose();
-                    //_startSubscription = _battleWeaponInstance.OnHit.Subscribe(col =>
-                    //{
-                    //    if(!col.gameObject.CompareTag("StartObject")) return;
-                    //    tutorialLineController.gameObject.SetActive(false);
-                    //    Destroy(_battleWeaponInstance.gameObject);
-                    //    _ovrWeaponDraw?.Dispose();
-                    //    _ovrWeaponDraw = null;
-                    //    _finishTutorial.OnNext(Unit.Default);
-                    //    _startSubscription?.Dispose();
-                    //}).AddTo(this);
+                    _startSubscription?.Dispose();
+                    _startSubscription = _battleWeaponInstance.OnHit.Subscribe(col =>
+                    {
+                        if(!col.gameObject.CompareTag("StartObject")) return;
+                        //tutorialLineController.gameObject.SetActive(false);
+                        Destroy(_battleWeaponInstance.gameObject);
+                        _ovrWeaponDraw?.Dispose();
+                        _ovrWeaponDraw = null;
+                        _finishTutorial.OnNext(Unit.Default);
+                        _startSubscription?.Dispose();
+                    }).AddTo(this);
                 }).AddTo(this);
             }
 
             private void OnEnable()
             {
-                text.text = "一筆書きで剣を書け！";
+                text.text = "一筆書きで剣を描け！";
             }
     }
 }

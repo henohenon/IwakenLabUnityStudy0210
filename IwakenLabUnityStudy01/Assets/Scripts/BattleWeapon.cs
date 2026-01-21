@@ -1,4 +1,5 @@
 using UnityEngine;
+using UnityEngine.InputSystem;
 using R3;
 
 namespace IwakenLabUnityStudy
@@ -11,6 +12,7 @@ namespace IwakenLabUnityStudy
         [SerializeField] private LineRenderer lineRenderer;
         [SerializeField] private float lineWidth = 0.1f;
         [SerializeField] private Material lineMaterial;
+        [SerializeField] private float moveSpeed = 5f;
 
         private readonly Subject<Collider> _onHit = new();
         public Observable<Collider> OnHit => _onHit;
@@ -80,6 +82,37 @@ namespace IwakenLabUnityStudy
             var rb = gameObject.AddComponent<Rigidbody>();
             rb.isKinematic = true;
             rb.useGravity = false;
+        }
+
+        private void Update()
+        {
+            // 十字キー/WASDで移動（新Input System使用）
+            var keyboard = Keyboard.current;
+            if (keyboard == null) return;
+
+            float horizontal = 0f;
+            float vertical = 0f;
+
+            // WASD
+            if (keyboard.aKey.isPressed || keyboard.leftArrowKey.isPressed) horizontal -= 1f;
+            if (keyboard.dKey.isPressed || keyboard.rightArrowKey.isPressed) horizontal += 1f;
+            if (keyboard.sKey.isPressed || keyboard.downArrowKey.isPressed) vertical -= 1f;
+            if (keyboard.wKey.isPressed || keyboard.upArrowKey.isPressed) vertical += 1f;
+
+            if (horizontal == 0f && vertical == 0f) return;
+
+            Vector3 movement = new Vector3(horizontal, vertical, 0f) * (moveSpeed * Time.deltaTime);
+            transform.Translate(movement, Space.World);
+
+            // LineRendererのノード位置も更新（useWorldSpace=trueのため）
+            if (_nodes != null && lineRenderer != null)
+            {
+                for (int i = 0; i < _nodes.Length; i++)
+                {
+                    _nodes[i] += movement;
+                }
+                lineRenderer.SetPositions(_nodes);
+            }
         }
 
         private void OnTriggerEnter(Collider other)
