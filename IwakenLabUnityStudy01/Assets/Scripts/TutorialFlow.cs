@@ -1,6 +1,7 @@
 using UnityEngine;
 using System;
 using R3;
+using TMPro;
 
 namespace IwakenLabUnityStudy
 {
@@ -8,6 +9,8 @@ namespace IwakenLabUnityStudy
     {
             [SerializeField] private MouseInputObserver mouseInputObserver;
             [SerializeField] private DrawWeapon drawWeapon;
+            [SerializeField] private TMP_Text text;
+            [SerializeField] private BattleWeapon battleWeaponPrefab;
             //[SerializeField] private TMPro.TMP_Text text;
             //[SerializeField] private TutorialLineController tutorialLineController;
 
@@ -15,6 +18,7 @@ namespace IwakenLabUnityStudy
             public Observable<Unit> FinishTutorial => _finishTutorial;
 
             private WeaponDrawSequencer _ovrWeaponDraw;
+            private BattleWeapon _battleWeaponInstance;
             private IDisposable _drawSubscription;
             private IDisposable _startSubscription;
 
@@ -26,11 +30,11 @@ namespace IwakenLabUnityStudy
                 {
                     _drawSubscription?.Dispose();
 
-                    //text.text = "ぶった斬れ！";
+                    text.text = "ぶった斬れ！";
                     drawWeapon.gameObject.SetActive(false);
 
-                    // _battleWeaponInstance = Instantiate(globalData.prefabDictionary[WeaponStyle.Sword], xrObjectResolver.BattlePlayer.RightHand.transform);
-                    // _battleWeaponInstance.Initialize(nodes, WeaponStyle.Sword, Utils.SelfLayer);
+                    _battleWeaponInstance = Instantiate(battleWeaponPrefab);
+                    _battleWeaponInstance.Initialize(nodes);
 
                     //tutorialLineController.To = startObject.gameObject.transform;
                     //tutorialLineController.From = _battleWeaponInstance.transform;
@@ -53,7 +57,7 @@ namespace IwakenLabUnityStudy
 
             private void OnEnable()
             {
-                //text.text = "一筆書きで剣を書け！";
+                text.text = "一筆書きで剣を書け！";
             }
     }
 }
