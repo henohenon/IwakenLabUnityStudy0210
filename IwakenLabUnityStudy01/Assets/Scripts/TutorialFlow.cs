@@ -23,7 +23,6 @@ namespace IwakenLabUnityStudy
             private IDisposable _drawSubscription;
             private IDisposable _startSubscription;
             private IDisposable _ballSpawnSubscription;
-            private int _hitCount;
 
             private void Awake()
             {
@@ -55,6 +54,8 @@ namespace IwakenLabUnityStudy
                         Destroy(_battleWeaponInstance.gameObject);
                         _ovrWeaponDraw?.Dispose();
                         _ovrWeaponDraw = null;
+                        text.text = "チュートリアルクリア！";
+                        Destroy(col.gameObject);
                         _finishTutorial.OnNext(Unit.Default);
                         _startSubscription?.Dispose();
                     }).AddTo(this);

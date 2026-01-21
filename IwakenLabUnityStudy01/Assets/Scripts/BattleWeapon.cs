@@ -18,7 +18,7 @@ namespace IwakenLabUnityStudy
         public Observable<Collider> OnHit => _onHit;
 
         private Vector3[] _nodes;
-        private BoxCollider _collider;
+        private GameObject _colliderContainer;
 
         /// <summary>
         /// ノードデータを受け取り、武器を初期化する
@@ -62,26 +62,63 @@ namespace IwakenLabUnityStudy
 
         private void SetupCollider(Vector3[] nodes)
         {
-            // ノード全体を囲むBoundsを計算
+            // ノード全体の中心を計算
             var bounds = new Bounds(nodes[0], Vector3.zero);
             foreach (var node in nodes)
             {
                 bounds.Encapsulate(node);
             }
-
-            // 位置を中心に設定
             transform.position = bounds.center;
 
-            // BoxColliderを追加
-            _collider = gameObject.AddComponent<BoxCollider>();
-            _collider.size = bounds.size + Vector3.one * lineWidth;
-            _collider.center = Vector3.zero;
-            _collider.isTrigger = true;
+            // コライダー用のコンテナを作成
+            _colliderContainer = new GameObject("Colliders");
+            _colliderContainer.transform.SetParent(transform);
+            _colliderContainer.transform.localPosition = Vector3.zero;
+
+            // 各セグメントにCapsuleColliderを配置
+            for (int i = 0; i < nodes.Length - 1; i++)
+            {
+                CreateSegmentCollider(nodes[i], nodes[i + 1], i);
+            }
 
             // Rigidbodyを追加（トリガー検出用）
             var rb = gameObject.AddComponent<Rigidbody>();
             rb.isKinematic = true;
             rb.useGravity = false;
+        }
+
+        private void CreateSegmentCollider(Vector3 start, Vector3 end, int index)
+        {
+            var segmentObj = new GameObject($"Segment_{index}");
+            segmentObj.transform.SetParent(_colliderContainer.transform);
+
+            // セグメントの中点に配置
+            var midPoint = (start + end) / 2f;
+            segmentObj.transform.position = midPoint;
+
+            // セグメントの方向に回転
+            var direction = end - start;
+            var length = direction.magnitude;
+            if (length > 0.001f)
+            {
+                segmentObj.transform.rotation = Quaternion.FromToRotation(Vector3.up, direction.normalized);
+            }
+
+            // CapsuleColliderを追加
+            var capsule = segmentObj.AddComponent<CapsuleCollider>();
+            capsule.height = length + lineWidth;
+            capsule.radius = lineWidth / 2f;
+            capsule.direction = 1; // Y軸方向
+            capsule.isTrigger = true;
+
+            // 当たり判定をこのオブジェクトに転送するコンポーネントを追加
+            var forwarder = segmentObj.AddComponent<ColliderForwarder>();
+            forwarder.Initialize(this);
+        }
+
+        public void NotifyHit(Collider other)
+        {
+            _onHit.OnNext(other);
         }
 
         private void Update()
@@ -113,11 +150,6 @@ namespace IwakenLabUnityStudy
                 }
                 lineRenderer.SetPositions(_nodes);
             }
-        }
-
-        private void OnTriggerEnter(Collider other)
-        {
-            _onHit.OnNext(other);
         }
 
         private void OnDestroy()
