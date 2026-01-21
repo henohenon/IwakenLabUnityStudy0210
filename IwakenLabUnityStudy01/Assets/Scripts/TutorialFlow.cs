@@ -11,8 +11,9 @@ namespace IwakenLabUnityStudy
             [SerializeField] private DrawWeapon drawWeapon;
             [SerializeField] private TMP_Text text;
             [SerializeField] private BattleWeapon battleWeaponPrefab;
-            //[SerializeField] private TMPro.TMP_Text text;
-            //[SerializeField] private TutorialLineController tutorialLineController;
+            [SerializeField] private FallingBall fallingBallPrefab;
+            [SerializeField] private float ballSpawnInterval = 6f;
+            [SerializeField] private Vector3 ballSpawnPosition = new Vector3(0, 5, 0);
 
             private readonly Subject<Unit> _finishTutorial = new ();
             public Observable<Unit> FinishTutorial => _finishTutorial;
@@ -21,6 +22,8 @@ namespace IwakenLabUnityStudy
             private BattleWeapon _battleWeaponInstance;
             private IDisposable _drawSubscription;
             private IDisposable _startSubscription;
+            private IDisposable _ballSpawnSubscription;
+            private int _hitCount;
 
             private void Awake()
             {
@@ -40,11 +43,15 @@ namespace IwakenLabUnityStudy
                     //tutorialLineController.From = _battleWeaponInstance.transform;
                     //tutorialLineController.gameObject.SetActive(true);
 
+                    // ボールを定期的に生成
+                    StartBallSpawning();
+
                     _startSubscription?.Dispose();
                     _startSubscription = _battleWeaponInstance.OnHit.Subscribe(col =>
                     {
                         if(!col.gameObject.CompareTag("StartObject")) return;
                         //tutorialLineController.gameObject.SetActive(false);
+                        _ballSpawnSubscription?.Dispose();
                         Destroy(_battleWeaponInstance.gameObject);
                         _ovrWeaponDraw?.Dispose();
                         _ovrWeaponDraw = null;
@@ -57,6 +64,34 @@ namespace IwakenLabUnityStudy
             private void OnEnable()
             {
                 text.text = "一筆書きで剣を描け！";
+            }
+
+            private void StartBallSpawning()
+            {
+                _ballSpawnSubscription?.Dispose();
+                _ballSpawnSubscription = Observable
+                    .Interval(TimeSpan.FromSeconds(ballSpawnInterval))
+                    .Subscribe(_ => SpawnBall())
+                    .AddTo(this);
+
+                // 最初のボールをすぐに生成
+                SpawnBall();
+            }
+
+            private void SpawnBall()
+            {
+                if (fallingBallPrefab == null) return;
+
+                // ランダムなX位置で生成
+                var spawnPos = ballSpawnPosition;
+                spawnPos.x += UnityEngine.Random.Range(-3f, 3f);
+
+                Instantiate(fallingBallPrefab, spawnPos, Quaternion.identity);
+            }
+
+            private void OnDisable()
+            {
+                _ballSpawnSubscription?.Dispose();
             }
     }
 }

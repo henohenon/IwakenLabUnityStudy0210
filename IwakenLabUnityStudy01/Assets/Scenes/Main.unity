@@ -416,6 +416,9 @@ MonoBehaviour:
   drawWeapon: {fileID: 843235502}
   text: {fileID: 854525588}
   battleWeaponPrefab: {fileID: 8319873932542409116, guid: 0529eef7cf86f4e548bc8627a4ff72dd, type: 3}
+  fallingBallPrefab: {fileID: 6057015291240318029, guid: b681d9757820f464b8f472cdf07108ef, type: 3}
+  ballSpawnInterval: 2
+  ballSpawnPosition: {x: 0, y: 5, z: 0}
 --- !u!4 &823745641
 Transform:
   m_ObjectHideFlags: 0
