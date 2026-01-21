@@ -32,15 +32,11 @@ namespace IwakenLabUnityStudy
                 {
                     _drawSubscription?.Dispose();
 
-                    text.text = "ぶった斬れ！";
+                    text.text = "Spaceキーで剣を振ってぶった斬れ！";
                     drawWeapon.gameObject.SetActive(false);
 
                     _battleWeaponInstance = Instantiate(battleWeaponPrefab);
                     _battleWeaponInstance.Initialize(nodes);
-
-                    //tutorialLineController.To = startObject.gameObject.transform;
-                    //tutorialLineController.From = _battleWeaponInstance.transform;
-                    //tutorialLineController.gameObject.SetActive(true);
 
                     // ボールを定期的に生成
                     StartBallSpawning();
@@ -49,7 +45,6 @@ namespace IwakenLabUnityStudy
                     _startSubscription = _battleWeaponInstance.OnHit.Subscribe(col =>
                     {
                         if(!col.gameObject.CompareTag("StartObject")) return;
-                        //tutorialLineController.gameObject.SetActive(false);
                         _ballSpawnSubscription?.Dispose();
                         Destroy(_battleWeaponInstance.gameObject);
                         _ovrWeaponDraw?.Dispose();
