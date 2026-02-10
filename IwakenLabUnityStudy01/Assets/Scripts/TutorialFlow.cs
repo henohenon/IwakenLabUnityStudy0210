@@ -1,7 +1,6 @@
 using UnityEngine;
 using System;
 using System.Threading;
-using System.Threading.Tasks;
 using Cysharp.Threading.Tasks;
 using R3;
 using TMPro;
@@ -18,40 +17,38 @@ namespace IwakenLabUnityStudy
             [SerializeField] private float ballSpawnInterval = 6f;
             [SerializeField] private Vector3 ballSpawnPosition = new Vector3(0, 5, 0);
 
-            private WeaponDrawSequencer _ovrWeaponDraw;
-            private BattleWeapon _battleWeaponInstance;
-            private IDisposable _drawSubscription;
-            private IDisposable _startSubscription;
             private IDisposable _ballSpawnSubscription;
+            private CancellationTokenSource _cts;
 
-            public async Task ExecTutorial(CancellationToken token)
+            public async UniTask ExecTutorial(CancellationToken token)
             {
-                _ovrWeaponDraw = new WeaponDrawSequencer(mouseInputObserver, drawWeapon);
+                _cts = CancellationTokenSource.CreateLinkedTokenSource(token);
+                using var ovrWeaponDraw = new WeaponDrawSequencer(mouseInputObserver, drawWeapon);
                 
-                var nodes = await _ovrWeaponDraw.DrawSequence(token);
+                var nodes = await ovrWeaponDraw.DrawSequence(_cts.Token);
                 
-                _drawSubscription?.Dispose();
-
                 text.text = "Spaceキーで剣を振ってぶった斬れ！";
                 drawWeapon.gameObject.SetActive(false);
 
-                _battleWeaponInstance = Instantiate(battleWeaponPrefab);
-                _battleWeaponInstance.Initialize(nodes);
+                var battleWeaponInstance = Instantiate(battleWeaponPrefab);
+                battleWeaponInstance.Initialize(nodes);
 
                 // ボールを定期的に生成
-                StartBallSpawning();
+                var spawnBallSubscription = StartBallSpawning();
+                
+                try
+                {
+                    var col = await battleWeaponInstance.OnHit.FirstAsync(_cts.Token).AddTo(this);
+                    Destroy(col.gameObject);
+                }
+                finally
+                {
+                    Destroy(battleWeaponInstance.gameObject);
+                    spawnBallSubscription.Dispose();
+                }
 
-                _startSubscription?.Dispose();
-                var col = await _battleWeaponInstance.OnHit.FirstAsync(token).AddTo(this);
-
-                if(!col.gameObject.CompareTag("StartObject")) return;
-                _ballSpawnSubscription?.Dispose();
-                Destroy(_battleWeaponInstance.gameObject);
-                _ovrWeaponDraw?.Dispose();
-                _ovrWeaponDraw = null;
                 text.text = "チュートリアルクリア！";
-                Destroy(col.gameObject);
-                _startSubscription?.Dispose();
+                _cts.Cancel();
             }
 
             private void OnEnable()
@@ -59,16 +56,18 @@ namespace IwakenLabUnityStudy
                 text.text = "一筆書きで剣を描け！";
             }
 
-            private void StartBallSpawning()
+            private IDisposable StartBallSpawning()
             {
                 _ballSpawnSubscription?.Dispose();
-                _ballSpawnSubscription = Observable
+                var disposable = _ballSpawnSubscription = Observable
                     .Interval(TimeSpan.FromSeconds(ballSpawnInterval))
                     .Subscribe(_ => SpawnBall())
                     .AddTo(this);
 
                 // 最初のボールをすぐに生成
                 SpawnBall();
+                
+                return disposable;
             }
 
             private void SpawnBall()
@@ -79,11 +78,14 @@ namespace IwakenLabUnityStudy
                 var spawnPos = ballSpawnPosition;
                 spawnPos.x += UnityEngine.Random.Range(-3f, 3f);
 
-                Instantiate(fallingBallPrefab, spawnPos, Quaternion.identity);
+                var instance = Instantiate(fallingBallPrefab, spawnPos, Quaternion.identity);
+                Destroy(instance, ballSpawnInterval * 2);
             }
 
             private void OnDisable()
             {
+                _cts?.Cancel();
+                _cts?.Dispose();
                 _ballSpawnSubscription?.Dispose();
             }
     }

@@ -7,13 +7,12 @@ namespace IwakenLabUnityStudy
     public class MainFlow : MonoBehaviour
     {
         [SerializeField] private TutorialFlow tutorialFlow;
-        private CancellationTokenSource _tokenSource;
+        private readonly CancellationTokenSource _cts = new ();
         
         void OnEnable()
         {
             Debug.Log("TutorialFlow Enable");
-            _tokenSource = new CancellationTokenSource();
-            StartFlow(_tokenSource.Token).Forget();
+            StartFlow(_cts.Token).Forget();
         }
 
         private async UniTaskVoid StartFlow(CancellationToken token)
@@ -27,8 +26,8 @@ namespace IwakenLabUnityStudy
         
         private void OnDisable()
         {
-            _tokenSource?.Cancel();
-            _tokenSource?.Dispose();
+            _cts?.Cancel();
+            _cts?.Dispose();
         }
     }
 }
