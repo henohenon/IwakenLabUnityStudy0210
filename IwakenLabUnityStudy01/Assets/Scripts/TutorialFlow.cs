@@ -1,5 +1,8 @@
 using UnityEngine;
 using System;
+using System.Threading;
+using System.Threading.Tasks;
+using Cysharp.Threading.Tasks;
 using R3;
 using TMPro;
 
@@ -15,46 +18,40 @@ namespace IwakenLabUnityStudy
             [SerializeField] private float ballSpawnInterval = 6f;
             [SerializeField] private Vector3 ballSpawnPosition = new Vector3(0, 5, 0);
 
-            private readonly Subject<Unit> _finishTutorial = new ();
-            public Observable<Unit> FinishTutorial => _finishTutorial;
-
             private WeaponDrawSequencer _ovrWeaponDraw;
             private BattleWeapon _battleWeaponInstance;
             private IDisposable _drawSubscription;
             private IDisposable _startSubscription;
             private IDisposable _ballSpawnSubscription;
 
-            private void Awake()
+            public async Task ExecTutorial(CancellationToken token)
             {
                 _ovrWeaponDraw = new WeaponDrawSequencer(mouseInputObserver, drawWeapon);
+                
+                var nodes = await _ovrWeaponDraw.DrawSequence(token);
+                
+                _drawSubscription?.Dispose();
 
-                _drawSubscription = _ovrWeaponDraw.OnDrawEnd.Subscribe(nodes =>
-                {
-                    _drawSubscription?.Dispose();
+                text.text = "Spaceキーで剣を振ってぶった斬れ！";
+                drawWeapon.gameObject.SetActive(false);
 
-                    text.text = "Spaceキーで剣を振ってぶった斬れ！";
-                    drawWeapon.gameObject.SetActive(false);
+                _battleWeaponInstance = Instantiate(battleWeaponPrefab);
+                _battleWeaponInstance.Initialize(nodes);
 
-                    _battleWeaponInstance = Instantiate(battleWeaponPrefab);
-                    _battleWeaponInstance.Initialize(nodes);
+                // ボールを定期的に生成
+                StartBallSpawning();
 
-                    // ボールを定期的に生成
-                    StartBallSpawning();
+                _startSubscription?.Dispose();
+                var col = await _battleWeaponInstance.OnHit.FirstAsync(token).AddTo(this);
 
-                    _startSubscription?.Dispose();
-                    _startSubscription = _battleWeaponInstance.OnHit.Subscribe(col =>
-                    {
-                        if(!col.gameObject.CompareTag("StartObject")) return;
-                        _ballSpawnSubscription?.Dispose();
-                        Destroy(_battleWeaponInstance.gameObject);
-                        _ovrWeaponDraw?.Dispose();
-                        _ovrWeaponDraw = null;
-                        text.text = "チュートリアルクリア！";
-                        Destroy(col.gameObject);
-                        _finishTutorial.OnNext(Unit.Default);
-                        _startSubscription?.Dispose();
-                    }).AddTo(this);
-                }).AddTo(this);
+                if(!col.gameObject.CompareTag("StartObject")) return;
+                _ballSpawnSubscription?.Dispose();
+                Destroy(_battleWeaponInstance.gameObject);
+                _ovrWeaponDraw?.Dispose();
+                _ovrWeaponDraw = null;
+                text.text = "チュートリアルクリア！";
+                Destroy(col.gameObject);
+                _startSubscription?.Dispose();
             }
 
             private void OnEnable()
