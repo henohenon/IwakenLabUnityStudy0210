@@ -35,7 +35,7 @@ namespace IwakenLabUnityStudy
             touchSubscription.Dispose();
 
             var data = _weapon.DrawEnd();
-            if (data == null) return await DrawSequence(token);
+            if (data == null) return await DrawSequence(token); // whileのほうがやりたいことがわかりやすいしバグも出づらそうだけど思いついたので書いてみる。
             return data;
         }
 

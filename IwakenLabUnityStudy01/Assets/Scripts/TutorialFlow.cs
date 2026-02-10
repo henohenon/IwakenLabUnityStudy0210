@@ -79,6 +79,7 @@ namespace IwakenLabUnityStudy
                 spawnPos.x += UnityEngine.Random.Range(-3f, 3f);
 
                 var instance = Instantiate(fallingBallPrefab, spawnPos, Quaternion.identity);
+                // シンプルでこっちのが一旦良い気がする。終了時全削除とか想定場合はtaskのほうが良さそう、ただ真面目にやるならObjectPoolとかにはなりそう。
                 Destroy(instance, ballSpawnInterval * 2);
             }
 
